@@ -7,6 +7,13 @@ namespace AspSso.Controllers
     [Authorize]
     public class SecuredController : Controller
     {
+        private readonly ILogger<SecuredController> logger;
+
+        public SecuredController(ILogger<SecuredController> securedLogger)
+        {
+            logger = securedLogger;
+        }
+
         public IActionResult Index()
         {
             return View();

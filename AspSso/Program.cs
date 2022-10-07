@@ -1,9 +1,17 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var conf = builder.Configuration;
+var authConf = AspSso.Models.Config.AuthConfig.Parse(conf);
+
+builder.Services.AddHttpClient();
+
+//builder.Services.Configure<AspSso.Models.Config.AuthConfig>(c => { return authConf; });
+builder.Services.AddSingleton(authConf);
+builder.Services.AddSingleton<AspSso.Services.SigninManager>();
 
 builder.Services
     .AddAuthentication(options =>
@@ -14,8 +22,8 @@ builder.Services
     .AddCookie()
     .AddGoogle(g =>
     {
-        g.ClientId = conf["Authentication:Google:ClientId"];
-        g.ClientSecret = conf["Authentication:Google:ClientSecret"];
+        g.ClientId = authConf.Google.ClientId;
+        g.ClientSecret = authConf.Google.ClientSecret;
         g.SaveTokens = true;
     });
 //.AddMicrosoftAccount(m => { ... })

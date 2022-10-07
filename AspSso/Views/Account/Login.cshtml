@@ -1,0 +1,10 @@
+﻿@inject AspSso.Services.SigninManager signin
+<h3>Signin Providers</h3>
+<ul>
+    @foreach (var p in signin.GetProviders())
+    {
+        <li>
+            <a href="@signin.GetGoogleUrl()">Google</a>
+        </li>
+    }
+</ul>

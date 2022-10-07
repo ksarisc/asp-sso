@@ -1,0 +1,12 @@
+﻿@model AspSso.Models.TokenData?
+<h3>Show Me Details</h3>
+<h3>Query String</h3>
+@foreach (var pair in Context.Request.Query)
+{
+    <div><span>@pair.Key</span><span>:</span><span>@pair.Value</span></div>
+}
+
+<h3>Token Data</h3>
+<pre>
+@Model?.Data
+</pre>
