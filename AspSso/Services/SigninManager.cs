@@ -6,8 +6,13 @@ namespace AspSso.Services
 {
     public class SigninManager
     {
+        private readonly System.Text.Json.JsonSerializerOptions joptions = new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+        };
+
         private readonly IHttpClientFactory httpFactory;
-        private readonly string loginUrl, authorizeUrl;
+        private readonly string loginUrl;
         private readonly AuthConfigGoogle google;
 
         public SigninManager(AuthConfig authConfig, IServer server, IHttpClientFactory httpClientFactory)
@@ -17,13 +22,10 @@ namespace AspSso.Services
             var addresses = server?.Features.Get<IServerAddressesFeature>();
             if (addresses != null)
             {
-                foreach (var addr in addresses.Addresses)
-                {
-                    System.Diagnostics.Debug.WriteLine(addr);
-                }
+                loginUrl = addresses.Addresses.Last();
             }
             //return addresses?.Addresses ?? Array.Empty<string>();
-            authorizeUrl = "https://localhost:7264/account/google-authorize"; //signin-google"; // /";
+            //authorizeUrl = "https://localhost:7264/account/google-authorize"; //signin-google"; // /";
             google = authConfig.Google;
         }
 
@@ -83,21 +85,32 @@ namespace AspSso.Services
             if (!rsp.IsSuccessStatusCode)
             {
                 // handle error
-                return Models.TokenData.Empty;
+                return new Models.TokenData { Error = rsp.StatusCode.ToString() };
             }
 
-            using var stream = await rsp.Content.ReadAsStreamAsync();
-            using var reader = new StreamReader(stream);
-            System.Diagnostics.Debug.WriteLine("\t\t!! DATA !!");
-            var data = await reader.ReadToEndAsync();
-            System.Diagnostics.Debug.WriteLine(data);
+            var resultFile = $@"C:\temp\google\data\{DateTime.Now:yyyyMMdd_HHmmss_fff}.json";
+            var json = await rsp.Content.ReadFromJsonAsync<Models.Sso.GoogleToken>();
 
-            await System.IO.File.WriteAllTextAsync($@"C:\temp\google\data\{DateTime.Now:yyyyMMdd_HHmmss_fff}.htm", data);
+            using var output = new System.IO.FileStream(resultFile,
+                FileMode.Create, FileAccess.Write, FileShare.None, 4096, true);
 
-            return new Models.TokenData
+            if (json == null)
             {
-                Data = data,
-            };
+                using var content = await rsp.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(content);
+                using var writer = new StreamWriter(output);
+                //System.Diagnostics.Debug.WriteLine("\t\t!! DATA !!");
+                while (!reader.EndOfStream)
+                {
+                    var line = await reader.ReadLineAsync();
+                    if (line != null) await writer.WriteLineAsync(line);
+                }
+                return new Models.TokenData { Error = "Unable to retrieve token data", };
+            }
+
+            await System.Text.Json.JsonSerializer.SerializeAsync(output, json, joptions);
+
+            return json.ToTokenData();
         } // END ExchangeCodeAsync
     }
 }
