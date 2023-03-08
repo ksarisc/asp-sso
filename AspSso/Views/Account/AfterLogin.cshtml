@@ -8,5 +8,13 @@
 
 <h3>Token Data</h3>
 <pre>
-@Model?.Data
+@if (Model != null)
+{
+
+    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+}
+else
+{
+    @Html.Raw("No Model data found");
+}
 </pre>

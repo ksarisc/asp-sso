@@ -6,6 +6,7 @@ namespace AspSso.Services
 {
     public class SigninManager
     {
+        private const string loginUrlTemplate = "{0}/account/google"; //signin-google";
         private readonly System.Text.Json.JsonSerializerOptions joptions = new System.Text.Json.JsonSerializerOptions
         {
             WriteIndented = true,
@@ -18,14 +19,24 @@ namespace AspSso.Services
         public SigninManager(AuthConfig authConfig, IServer server, IHttpClientFactory httpClientFactory)
         {
             httpFactory = httpClientFactory;
-            loginUrl = "https://localhost:7264/account/google"; //signin-google"; // /";
+            string? url = null;
             var addresses = server?.Features.Get<IServerAddressesFeature>();
             if (addresses != null)
             {
-                loginUrl = addresses.Addresses.Last();
+                foreach (var addr in addresses.Addresses)
+                {
+                    if (addr != null && addr.StartsWith("https", StringComparison.OrdinalIgnoreCase))
+                    {
+                        url = string.Format(loginUrlTemplate, addr);
+                        break;
+                    }
+                }
+                //loginUrl = addresses.Addresses.Last();
             }
-            //return addresses?.Addresses ?? Array.Empty<string>();
-            //authorizeUrl = "https://localhost:7264/account/google-authorize"; //signin-google"; // /";
+            if (url == null)
+                url = string.Format(loginUrlTemplate, "https://localhost:7264");
+            loginUrl = url;
+            //authorizeUrl = "https://localhost:7264/account/google-authorize";
             google = authConfig.Google;
         }
 
@@ -33,6 +44,7 @@ namespace AspSso.Services
             "scope=https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile&client_id={1}";
         public string GetGoogleUrl()
         {
+            // should this be cached?
             //conf["Authentication:Google:ClientId"]
             return string.Format(googleUrl, loginUrl, google.ClientId);
         }
